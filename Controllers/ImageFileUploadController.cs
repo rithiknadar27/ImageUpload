@@ -107,6 +107,7 @@ namespace ImageUpload.Controllers
             }
 
 
+
         [HttpPost] //single base64 upload
         public async Task<JsonResponse> UploadFile(IList<IFormFile> filesData, int id)
         {
