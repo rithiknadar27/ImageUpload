@@ -1,0 +1,204 @@
+﻿@using ImageUpload.Models;
+@model Image;
+@{
+    ViewData["Title"] = "Image";
+}
+
+<form class="form">
+    <h2 class="card-header">
+        Image File Upload
+    </h2>
+    <div class="card-body">
+        <div class="row">
+            <div class="col">
+                @Html.LabelFor(e=>e.Name,new{@class="form-label"})
+                @Html.TextBoxFor(e=>e.Name,new{@id="txt_name" ,@class="form-control"})
+            </div>
+            <div class="col-4">
+                @Html.LabelFor(e=>e.FileUpload,new{@class="form-label"})
+
+                @*we can use this insteed of hidden
+                <input type="hidden" value="0" asp-for="ImageID" />*@
+
+                @Html.Hidden("ImageID","0",new{@id="txt_imageID"})
+                <input type="file" id="txt_fileUpload" multiple />
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-4">
+                <input type="button" id="btn_save" class="btn btn-outline-primary" value="Save"/>
+            </div>
+        </div>
+    </div>
+
+    <div id="view_image">
+         
+    </div>
+
+</form>
+
+<div class="container">
+    <div class="card">
+        <h2 class="card-header">
+            View Image
+        </h2>
+        <table class="table">
+            <thead>
+                <th> Image </th>
+                <th> View </th>
+            </thead>
+            <tbody>
+                @foreach(var item in Model.Images)
+                {
+                    <tr>
+                        <td>@item.FileType</td>
+                        <td>
+
+                            <input type="button" viewID="@item.ImageID" class="btn btn-outline-warning btn-view" value="View" />
+
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+
+@*carouse*@
+<div id="carouselExampleControls" class="carousel slide mt-5 view-image" data-bs-interval="false" data-bs-ride="carousel">
+    <div class="carousel-inner">
+    
+    </div>
+    <button class="carousel-control-prev bg-black" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next bg-black" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+</div>
+
+<div id="image">
+
+</div>
+
+@section Scripts
+    {
+    <script>
+
+
+       
+        //$(".btn-view").on("click", function () {
+        //    //$('#carouselExampleControls').show();
+        //    var imageID = $(this).attr("viewID")
+        //    $(".carousel-inner").empty()
+        //    $.ajax({
+        //        type:"Get",
+        //        data:{"id":imageID},
+        //        url: "@Url.Action("ViewImage","ImageFileUpload")",
+        //        success:function(response){
+        //            var view = response.base64
+        //            $(".carousel-inner").append(`
+        //                <div class="carousel-item">
+        //                                        <img class="d-block w-100 view-image"  src="data:image/png;base64,${view}">
+        //                </div>
+        //            `)
+        //            var item = $(".carousel-item")
+        //            $(item[item.length - 1]).addClass("active");
+        //        },error:function(){
+
+        //        }
+        //    })
+        //})
+
+        $(".btn-view").on("click", function () {
+            //$('#carouselExampleControls').show();
+            var imageID = $(this).attr("viewID")
+            $(".carousel-inner").empty()
+            $.ajax({
+                type: "Get",
+                data: { "id": imageID },
+                url: "@Url.Action("ViewImage","ImageFileUpload")",
+                success: function (response) {
+                    var view = response.fileUploadArray;
+                    for(var i =0;i< view.length;i++)
+                    {
+                        $(".carousel-inner").append(`
+                            <div class="carousel-item">
+                                <img class="d-block w-100 view-image"  src="data:image/png;base64,${view[i]}">
+                            </div>
+                        `)
+                        
+                    }
+                    var item = $(".carousel-item")
+                    $(item[item.length - 1]).addClass("active");
+                }, error: function () {
+
+                }
+            })
+        })
+
+         $(document).on("click", "#btn_save", function () {
+             var array = $(".form").serializeArray();
+
+             if ($(".form").valid()) {
+                 $.ajax({
+                     type: "POST",
+                     data: array,
+                     url: "@Url.Action("InsertFile","ImageFileUpload")",
+                     success: function (response) {
+                         if (response.status == 'S') {
+                             alert(response.message)
+                             uploadImage(response.data)
+                         } else if (response.status == 'F') {
+                             alert(response.message);
+                         }else{
+                             alert("Something went wrong");
+                         }
+                     },error(xhr, status, error) {
+                         console.log(error)
+                     }
+                 })
+             }
+        })
+
+         function uploadImage(id)
+         {
+             var image = document.getElementById("txt_fileUpload");
+             var imageFile = image.files;
+             var file = new FormData();
+
+             if(imageFile.length >0)
+             {
+                 for (var i = 0; i != imageFile.length; i++) {
+                     file.append("filesData", imageFile[i])
+                 }
+                 file.append("id", id);
+             }
+             $.ajax({
+                 type: "POST",
+                url: "@Url.Action("UploadBase64File","ImageFileUpload")",
+                 data: file,
+                 processData: false,
+                 contentType: false,
+                 success: function (response) {
+                     if (response.status == 'S') {
+                         alert(response.message);
+                         window.location.href = "@Url.Action("Image","ImageFileUpload")"
+                     } else if (response.status == 'F') {
+                         alert(response.message);
+                     } else {
+                         alert("Something went wrong");
+                     }
+                 }, error(xhr, status, error) {
+                     console.log(error)
+                 }
+
+             })
+
+         }
+    </script>
+}
